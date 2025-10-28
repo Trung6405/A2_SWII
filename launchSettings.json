@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "EventScheduler": {
+      "commandName": "Project",
+      "commandLineArgs": "\"$(SolutionDir)\\TrekCon_Events.csv\" 2024-08-05"
+    }
+  }
+}
