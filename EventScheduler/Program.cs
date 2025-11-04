@@ -1,4 +1,5 @@
 ﻿using Calendar;
+using Calendar.Extensions;
 using System;
 
 namespace EventScheduler
@@ -66,5 +67,6 @@ namespace EventScheduler
     }
 
 }
+
 
 
