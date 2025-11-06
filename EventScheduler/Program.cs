@@ -55,13 +55,46 @@ namespace EventScheduler
                     evt.SetEventDay(newEventDay);
                 }
             }
+
+            // Rule 3: If final day is weekend then move it to mon
+            int maxDay = 0;
+            for (int i=0; i < eventCalendar.EventCount(); i++){
+                var evt = eventCalendar.GetEvent(i);
+                if (evt.GetEventDay() > maxDay) {
+                    maxDay = evt.GetEventDay();
+                }
+            }
+
+            var finalDate = startDate.AddDays(maxDay - 1);
+            if (finalDate.IsWeekend()){
+                int daysToShift = 0;
+                // Increment counter if on weekend
+                while (finalDate.AddDays(daysToShift).IsWeekend())
+                {
+                    daysToShift++;
+                }
+
+                for (int i = 0; i < eventCalendar.EventCount(); i++){
+                    var evt = eventCalendar.GetEvent(i);
+                    evt.SetEventDay(evt.GetEventDay() + daysToShift);
+                }
+            }
             // :END:
 
-            // Print the event calendar to standard output.
-            var calendarStartDayDate = eventCalendar.StartDayDate;
-            for (int i = 0; i < eventCalendar.EventCount(); i++)
-            {
-                Console.WriteLine(eventCalendar.GetEvent(i).ToDebugString(calendarStartDayDate));
+            // Print the event calendar to the specified output in assignment
+            Console.WriteLine("EventID,EventName,EventDate,StartTime");
+
+    for (int i = 0; i < eventCalendar.EventCount(); i++)
+        {
+        var evt = eventCalendar.GetEvent(i);
+    
+            var actualDate = startDate.AddDays(evt.GetEventDay() - 1);
+            var dateString = actualDate.ToString("yyyy-MM-dd");
+    
+            var startDateTime = evt.GetStartDateTime(eventCalendar.StartDayDate);
+            var startTimeString = startDateTime.ToStartTimeFormat();
+    
+            Console.WriteLine($"{evt.GetEventId()},{evt.GetEventName()},{dateString},{startTimeString}");
             }
         }
     }
