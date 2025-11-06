@@ -1,0 +1,3 @@
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Release/net8.0/win-x64/publish/EventScheduler.pdb
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Release/net8.0/win-x64/publish/Calendar.xml
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Release/net8.0/win-x64/publish/EventScheduler.exe

@@ -1,0 +1,244 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Calendar</name>
+    </assembly>
+    <members>
+        <member name="T:Calendar.Event">
+            <summary>
+            The representation of a single event for a calendar.
+            </summary>
+        </member>
+        <member name="M:Calendar.Event.#ctor(System.String,System.String,System.Int32,System.String,System.String)">
+            <summary>
+            Public Event constructor
+            </summary>
+            <param name="eventId">The string Id of this event.</param>
+            <param name="eventName">The string name of this event.</param>
+            <param name="eventDay">The integer day of this event.</param>
+            <param name="startTime">The string start time of this event (HH:mm).</param>
+            <param name="duration">The string duration of this event (HH:mm).</param>
+        </member>
+        <member name="M:Calendar.Event.GetStartDateTime(System.String)">
+            <summary>
+            Returns the start date and time for this event
+            </summary>
+            <param name="startDayDate">The starting day of the event group.</param>
+            <returns>The start date time for this event, based on the event group start day.</returns>
+        </member>
+        <member name="M:Calendar.Event.GetEndDateTime(System.String)">
+            <summary>
+            Returns the end date and time for this event
+            </summary>
+            <param name="startDayDate">The starting day of the event group.</param>
+            <returns>The end date time for this event, based on the event group start day.</returns>
+        </member>
+        <member name="M:Calendar.Event.GetDuration(System.String)">
+            <summary>
+            Return the duration of this event in whole and fractional hours
+            </summary>
+            <param name="startDayDate">The starting day of the event group.</param>
+            <returns>The duration of this event in whole and fractional hours.</returns>
+        </member>
+        <member name="M:Calendar.Event.GetEventId">
+            <summary>
+            Returns the unique ID for this event.
+            </summary>
+            <returns>The unique ID for this event.</returns>
+        </member>
+        <member name="M:Calendar.Event.GetEventName">
+            <summary>
+            Returns the name of this event.
+            </summary>
+            <returns>The name for this event.</returns>
+        </member>
+        <member name="M:Calendar.Event.GetEventDay">
+            <summary>
+            Get the event day as allocated.
+            </summary>
+            <returns>The assigned event day.</returns>
+        </member>
+        <member name="M:Calendar.Event.SetEventDay(System.Int32)">
+            <summary>
+            Set a new event day for this event.
+            </summary>
+            <param name="newEventDay">The day of this event, must be greater than 0.</param>
+        </member>
+        <member name="M:Calendar.Event.SetStartTime(System.String)">
+            <summary>
+            Set the start time for this event (formatted as HH:mm).
+            </summary>
+            <param name="startTime">The new start time for this event.</param>
+        </member>
+        <member name="M:Calendar.Event.ToDebugString(System.String)">
+            <summary>
+            Return a string representation of this event for debug purposes.
+            </summary>
+            <param name="startDayDate">The starting day of the event group.</param>
+            <returns>A string representation of this event for debug purposes.</returns>
+        </member>
+        <member name="M:Calendar.Event.Clone">
+            <summary>
+            Provide a deep clone of this event.
+            </summary>
+            <returns>A deep clone of this event.</returns>
+        </member>
+        <member name="T:Calendar.ICloneable`1">
+            <summary>
+            Provides the Cloneable interface for typed clone operations.
+            </summary>
+            <typeparam name="T">The type to return when cloning.</typeparam>
+        </member>
+        <member name="M:Calendar.ICloneable`1.Clone">
+            <summary>
+            Clones the given object of type 'T'.
+            </summary>
+            <returns>A cloned object of type 'T'.</returns>
+        </member>
+        <member name="T:Calendar.EventCalendar">
+            <summary>
+            An object for holding all events grouped for a specific purpose, such as a convention or conference.
+            Provides a number of handy helper functions for calendrical operations on the events.
+            </summary>
+        </member>
+        <member name="P:Calendar.EventCalendar.DailyStartTime">
+            <summary>
+            The earliest daily start time for this event calendar (HH:mm).
+            </summary>
+        </member>
+        <member name="P:Calendar.EventCalendar.DailyEndTime">
+            <summary>
+            The latest finish time for this event calendar (HH:mm).
+            </summary>
+        </member>
+        <member name="P:Calendar.EventCalendar.LunchDuration">
+            <summary>
+            The required duration for a lunch break.
+            </summary>
+        </member>
+        <member name="P:Calendar.EventCalendar.LunchTimeStartLowerBound">
+            <summary>
+            The earliest time lunch can start (HH:mm).
+            </summary>
+        </member>
+        <member name="P:Calendar.EventCalendar.LunchTimeStartUpperBound">
+            <summary>
+            The latest time lunch can start (HH:mm).
+            </summary>
+        </member>
+        <member name="P:Calendar.EventCalendar.StartDayDate">
+            <summary>
+            The first day calendar day of events (yyyy-MM-DD).
+            </summary>
+        </member>
+        <member name="M:Calendar.EventCalendar.Parse(System.String,System.Int32)">
+            <summary>
+            Parse the events file and populate the events list.
+            The events file must be in the required input format.
+            </summary>
+            <param name="pathToEventsFile">The file path to the events CSV.</param>
+            <param name="startLine">The line to start reading "pathToEventsFile". The default is 1, which implies the file has a header row.</param>
+            <exception cref="T:System.IO.FileNotFoundException">The events file could not be found.</exception>
+        </member>
+        <member name="M:Calendar.EventCalendar.SetStartDayDate(System.String)">
+            <summary>
+            Set the start day date for this event.
+            Dates for all events are based from this date.
+            </summary>
+            <param name="startDayDate">The start day date for this event calendar.</param>
+        </member>
+        <member name="M:Calendar.EventCalendar.AddEvent(Calendar.Event)">
+            <summary>
+            Add an event to the event calendar.
+            </summary>
+            <param name="newEvent">The event to add to the event calendar.</param>
+            <returns>The position of the event in the event calendar.</returns>
+        </member>
+        <member name="M:Calendar.EventCalendar.InsertEvent(System.Int32,Calendar.Event)">
+            <summary>
+            Insert an event into the event calendar, at a specific position.
+            </summary>
+            <param name="index">The position to insert the event in the event calendar.</param>
+            <param name="newEvent">The event to insert into the event calendar.</param>
+        </member>
+        <member name="M:Calendar.EventCalendar.RemoveEvent(System.Int32)">
+            <summary>
+            Remove an event from the event calendar at the provided index.
+            </summary>
+            <param name="index">The index in the event calendar where the event will be removed.</param>
+        </member>
+        <member name="M:Calendar.EventCalendar.GetEvent(System.Int32)">
+            <summary>
+            Return the event at the provided index.
+            </summary>
+            <param name="index">The index in the event calendar of the requested event.</param>
+            <returns>The event at the give index in the event calendar.</returns>
+        </member>
+        <member name="M:Calendar.EventCalendar.EventCount">
+            <summary>
+            Returns the total number of events in this event calendar.
+            </summary>
+            <returns>The total number of events in this event calendar.</returns>
+        </member>
+        <member name="M:Calendar.EventCalendar.DoesOverlap(System.Int32,Calendar.Event)">
+            <summary>
+            Returns true if two events overlap their start or end times.
+            </summary>
+            <param name="index">The index of the event to check from within the event calendar.</param>
+            <param name="queryEvent">The reference event to check against the event calendar.</param>
+            <returns>True if the events overlap, false otherwise.</returns>
+            <exception cref="T:System.ArgumentNullException">The start day date has not been set for this event calendar. See SetStartDayDate().</exception>
+        </member>
+        <member name="M:Calendar.EventCalendar.DurationFromOpening(Calendar.Event)">
+            <summary>
+            Returns the time difference (in fractional hours) from the start of the day to the reference events start time.
+            </summary>
+            <param name="referenceEvent">The event from which the start time will be used.</param>
+            <returns>The time difference (in fractional hours) from the start of the day to the reference events start time.</returns>
+            <exception cref="T:System.ArgumentNullException">The start day date has not been set for this event calendar. See SetStartDayDate().</exception>
+        </member>
+        <member name="M:Calendar.EventCalendar.DurationFromClosing(Calendar.Event)">
+            <summary>
+            Returns the time difference (in fractional hours) from the end of the day to the reference events end time.
+            </summary>
+            <param name="referenceEvent">The event from which the end time will be used.</param>
+            <returns>The time difference (in fractional hours) from the end of the day to the reference events end time.</returns>
+            <exception cref="T:System.ArgumentNullException">The start day date has not been set for this event calendar. See SetStartDayDate().</exception>
+        </member>
+        <member name="M:Calendar.EventCalendar.DurationToEarliestLunchStart(Calendar.Event)">
+            <summary>
+            Returns the time difference (in fractional hours) from the event calendars earliest time lunch can start, to the reference events end time.
+            </summary>
+            <param name="referenceEvent">The event from which the end time will be used.</param>
+            <returns>The time difference (in fractional hours) from the event calendars earliest time lunch can start, to the reference events end time.</returns>
+            <exception cref="T:System.ArgumentNullException">The start day date has not been set for this event calendar. See SetStartDayDate().</exception>
+        </member>
+        <member name="M:Calendar.EventCalendar.DurationFromLatestLunchEnd(Calendar.Event)">
+            <summary>
+            Returns the time difference (in fractional hours) from the event calendars latest time lunch can end, to the reference events start time.
+            </summary>
+            <param name="referenceEvent">The event from which the start time will be used.</param>
+            <returns>The time difference (in fractional hours) from the event calendars latest time lunch can end, to the reference events start time.</returns>
+            <exception cref="T:System.ArgumentNullException">The start day date has not been set for this event calendar. See SetStartDayDate().</exception>
+        </member>
+        <member name="T:Calendar.Extensions.DateTimeExtensions">
+            <summary>
+            Provides DateTime extension methods, useful in calendrical operations.
+            </summary>
+        </member>
+        <member name="M:Calendar.Extensions.DateTimeExtensions.IsWeekend(System.DateTime)">
+            <summary>
+            Checks the provided date day and returns True if it is a weekend, False otherwise.
+            </summary>
+            <param name="date">The date to check.</param>
+            <returns>True if the provided date is a weekend, False otherwise.</returns>
+        </member>
+        <member name="M:Calendar.Extensions.DateTimeExtensions.ToStartTimeFormat(System.DateTime)">
+            <summary>
+            Returns the provided day in the event calendar Start Time format.
+            </summary>
+            <param name="date">The date to format.</param>
+            <returns>The provided date in Start Time format (HH:mm).</returns>
+        </member>
+    </members>
+</doc>
