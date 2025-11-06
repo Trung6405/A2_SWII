@@ -79,6 +79,54 @@ namespace EventScheduler
                     evt.SetEventDay(evt.GetEventDay() + daysToShift);
                 }
             }
+
+            // Rule 1: No two events shall overlap
+            for (int i = 0; i < eventCalendar.EventCount(); i++)
+            {
+                for (int j = i + 1; j < eventCalendar.EventCount(); j++)
+                {
+                    var evt1 = eventCalendar.GetEvent(i);
+                    var evt2 = eventCalendar.GetEvent(j);
+                    
+                    //check if same day
+                    if (evt1.GetEventDay() == evt2.GetEventDay())
+                    {
+                        if (eventCalendar.DoesOverlap(i, evt2))
+                        {
+                            // Second event moves after firstt
+                            var evt1End = evt1.GetEndDateTime(eventCalendar.StartDayDate);
+                            evt2.SetStartTime(evt1End.ToStartTimeFormat());
+                        }
+                    }
+                }
+            }
+
+            // Rule 5: Events must be scheduled to start and finish between 9am and 5pm in local time
+                        for (int i = 0; i < eventCalendar.EventCount(); i++)
+            {
+                var evt = eventCalendar.GetEvent(i);
+                
+                var durationFromOpening = eventCalendar.DurationFromOpening(evt);
+                if (durationFromOpening < 0)
+                {
+                    // if before 9am, move to 9
+                    evt.SetStartTime("09:00");
+                }
+                
+                var durationFromClosing = eventCalendar.DurationFromClosing(evt);
+                if (durationFromClosing < 0)
+                {
+                    // try to start event earlier by checking latest start time 
+                    var endTime = evt.GetEndDateTime(eventCalendar.StartDayDate);
+                    var startTime = evt.GetStartDateTime(eventCalendar.StartDayDate);
+                    var duration = evt.GetDuration(eventCalendar.StartDayDate);
+                    
+                    var latestStart = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.DailyEndTime}");
+                    latestStart = latestStart.AddHours(-duration);
+                    
+                    evt.SetStartTime(latestStart.ToStartTimeFormat());
+                }
+            }
             // :END:
 
             // Print the event calendar to the specified output in assignment
