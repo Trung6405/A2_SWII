@@ -40,21 +40,20 @@ namespace EventScheduler
             }
 
             // Rule 4: Move events from weekends to weekdays.
-            for (int i = 0; i < eventCalendar.EventCount(); i++)
-            {
+                for (int i = 0; i < eventCalendar.EventCount(); i++)
+                {
                 var evt = eventCalendar.GetEvent(i);
                 var eventDate = startDate.AddDays(evt.GetEventDay() - 1);
                 
                 if (eventDate.IsWeekend())
                 {
                     // Find next weekday
-                    var daysToAdd = 0;
+                    int daysToAdd = 1;
                     while (eventDate.AddDays(daysToAdd).IsWeekend())
                     {
                         daysToAdd++;
                     }
-                    var newEventDay = evt.GetEventDay() + daysToAdd;
-                    evt.SetEventDay(newEventDay);
+                    evt.SetEventDay(evt.GetEventDay() + daysToAdd);
                 }
             }
 
@@ -82,29 +81,8 @@ namespace EventScheduler
                 }
             }
 
-            // Rule 1: No two events shall overlap
-            for (int i = 0; i < eventCalendar.EventCount(); i++)
-            {
-                for (int j = i + 1; j < eventCalendar.EventCount(); j++)
-                {
-                    var evt1 = eventCalendar.GetEvent(i);
-                    var evt2 = eventCalendar.GetEvent(j);
-                    
-                    //check if same day
-                    if (evt1.GetEventDay() == evt2.GetEventDay())
-                    {
-                        if (eventCalendar.DoesOverlap(i, evt2))
-                        {
-                            // Second event moves after firstt
-                            var evt1End = evt1.GetEndDateTime(eventCalendar.StartDayDate);
-                            evt2.SetStartTime(evt1End.ToStartTimeFormat());
-                        }
-                    }
-                }
-            }
-
             // Rule 5: Events must be scheduled to start and finish between 9am and 5pm in local time
-                        for (int i = 0; i < eventCalendar.EventCount(); i++)
+                for (int i = 0; i < eventCalendar.EventCount(); i++)
             {
                 var evt = eventCalendar.GetEvent(i);
                 
@@ -119,42 +97,126 @@ namespace EventScheduler
                 if (durationFromClosing < 0)
                 {
                     // try to start event earlier by checking latest start time 
-                    var endTime = evt.GetEndDateTime(eventCalendar.StartDayDate);
-                    var startTime = evt.GetStartDateTime(eventCalendar.StartDayDate);
                     var duration = evt.GetDuration(eventCalendar.StartDayDate);
-                    
                     var latestStart = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.DailyEndTime}");
                     latestStart = latestStart.AddHours(-duration);
-                    
                     evt.SetStartTime(latestStart.ToStartTimeFormat());
                 }
             }
 
+              // Rule 1: No two events shall overlap
+var eventsByDayForRule1 = new Dictionary<int, List<int>>();
+for (int i = 0; i < eventCalendar.EventCount(); i++)
+{
+    var evt = eventCalendar.GetEvent(i);
+    int day = evt.GetEventDay();
+    
+    if (!eventsByDayForRule1.ContainsKey(day))
+    {
+        eventsByDayForRule1[day] = new List<int>();
+    }
+    eventsByDayForRule1[day].Add(i);
+}
+
+// process day seperately
+foreach (var day in eventsByDayForRule1.Keys.OrderBy(k => k).ToList())
+{
+    bool changesMade = true;
+    
+    while (changesMade)
+    {
+        changesMade = false;
+        
+        var eventIndices = eventsByDayForRule1[day];
+        
+        // sort by real start time
+        eventIndices.Sort((a, b) =>
+        {
+            var evtA = eventCalendar.GetEvent(a);
+            var evtB = eventCalendar.GetEvent(b);
+            var actualDateA = startDate.AddDays(evtA.GetEventDay() - 1);
+            var actualDateB = startDate.AddDays(evtB.GetEventDay() - 1);
+            var timeA = evtA.GetStartDateTime(actualDateA.ToString("yyyy-MM-dd"));
+            var timeB = evtB.GetStartDateTime(actualDateB.ToString("yyyy-MM-dd"));
+            return timeA.CompareTo(timeB);
+        });
+        
+        for (int i = 0; i < eventIndices.Count - 1; i++)
+        {
+            var idx1 = eventIndices[i];
+            var idx2 = eventIndices[i + 1];
+            
+            var evt1 = eventCalendar.GetEvent(idx1);
+            var evt2 = eventCalendar.GetEvent(idx2);
+            
+            var actualDate1 = startDate.AddDays(evt1.GetEventDay() - 1);
+            var actualDate2 = startDate.AddDays(evt2.GetEventDay() - 1);
+
+            var evt1End = evt1.GetEndDateTime(actualDate1.ToString("yyyy-MM-dd"));
+            var evt2Start = evt2.GetStartDateTime(actualDate2.ToString("yyyy-MM-dd"));
+            
+            if (evt2Start < evt1End)
+            {
+                changesMade = true;
+                
+                var evt2Duration = evt2.GetDuration(actualDate2.ToString("yyyy-MM-dd"));
+                var newEndTime = evt1End.AddHours(evt2Duration);
+                
+                var dailyEnd = DateTime.Parse($"{actualDate2:yyyy-MM-dd} {eventCalendar.DailyEndTime}");
+                
+                if (newEndTime <= dailyEnd)
+                {
+                    evt2.SetStartTime(evt1End.ToStartTimeFormat());
+                }
+                else
+                {
+                    evt2.SetEventDay(evt2.GetEventDay() + 1);
+                    evt2.SetStartTime("09:00");
+                    
+                    eventIndices.RemoveAt(i + 1);
+                    
+                    int nextDay = evt2.GetEventDay();
+                    if (!eventsByDayForRule1.ContainsKey(nextDay))
+                    {
+                        eventsByDayForRule1[nextDay] = new List<int>();
+                    }
+                    eventsByDayForRule1[nextDay].Add(idx2);
+                }
+                
+                break;
+            }
+        }
+    }
+}
+
             // Rule 6: Must be a 1 hour lunch break during the day between 12 noon to 2 pm
             var eventsByDay = new Dictionary<int, List<Event>>();
-            for (int i = 0; i < eventCalendar.EventCount(); i++) {
+            for (int i = 0; i < eventCalendar.EventCount(); i++)
+            {
                 var evt = eventCalendar.GetEvent(i);
                 int day = evt.GetEventDay();
-                    // groups each event by day
-                if (!eventsByDay.ContainsKey(day)) {
+                
+                if (!eventsByDay.ContainsKey(day))
+                {
                     eventsByDay[day] = new List<Event>();
                 }
                 eventsByDay[day].Add(evt);
-
             }
 
-            foreach (var day in eventsByDay.Keys) {
+            foreach (var day in eventsByDay.Keys.ToList())
+            {
                 var eventsOnDay = eventsByDay[day];
-
-                eventsOnDay.Sort((a,b) =>
+                
+                eventsOnDay.Sort((a, b) =>
                 {
                     var timeA = a.GetStartDateTime(eventCalendar.StartDayDate);
                     var timeB = b.GetStartDateTime(eventCalendar.StartDayDate);
                     return timeA.CompareTo(timeB);
                 });
 
-
-                 for (int i = 0; i < eventsOnDay.Count - 1; i++)
+                bool hasLunchBreak = false;
+                
+                for (int i = 0; i < eventsOnDay.Count - 1; i++)
                 {
                     var currentEvent = eventsOnDay[i];
                     var nextEvent = eventsOnDay[i + 1];
@@ -162,49 +224,58 @@ namespace EventScheduler
                     var currentEnd = currentEvent.GetEndDateTime(eventCalendar.StartDayDate);
                     var nextStart = nextEvent.GetStartDateTime(eventCalendar.StartDayDate);
                     
-                    var gapStart = currentEnd;
-                    var gapEnd = nextStart;
-                    var gapDuration = (gapEnd - gapStart).TotalHours;
+                    var gapDuration = (nextStart - currentEnd).TotalHours;
                     
-                    var lunchEarliestStart = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.LunchTimeStartLowerBound}");
-                    var lunchLatestEnd = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.LunchTimeStartUpperBound}").AddHours(eventCalendar.LunchDuration);
+                    var lunchEarliestStart = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.LunchTimeStartLowerBound}").AddDays(day - 1);
+                    var lunchLatestEnd = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.LunchTimeStartUpperBound}").AddHours(eventCalendar.LunchDuration).AddDays(day - 1);
                     
-                    lunchEarliestStart = lunchEarliestStart.AddDays(day - 1);
-                    lunchLatestEnd = lunchLatestEnd.AddDays(day - 1);
-                    
-                    //check if gap witth lunch si long enough
                     if (gapDuration >= eventCalendar.LunchDuration &&
-                        gapEnd > lunchEarliestStart &&
-                        gapStart < lunchLatestEnd)
+                        nextStart > lunchEarliestStart &&
+                        currentEnd < lunchLatestEnd)
                     {
+                        hasLunchBreak = true;
                         break;
                     }
                 }
-
-
+                
+                if (!hasLunchBreak && eventsOnDay.Count > 0)
+                {
+                    // Find best place to insert lunch break
+                    for (int i = 0; i < eventsOnDay.Count; i++)
+                    {
+                        var evt = eventsOnDay[i];
+                        var evtStart = evt.GetStartDateTime(eventCalendar.StartDayDate);
+                        var evtEnd = evt.GetEndDateTime(eventCalendar.StartDayDate);
+                        
+                        var lunchStart = DateTime.Parse($"{eventCalendar.StartDayDate} 12:00").AddDays(day - 1);
+                        
+                        // If event overlaps with lunch time, move it
+                        if (evtStart < lunchStart.AddHours(1) && evtEnd > lunchStart)
+                        {
+                            var newStart = lunchStart.AddHours(1);
+                            evt.SetStartTime(newStart.ToStartTimeFormat());
+                        }
+                    }
+                }
             }
+
 
             // :END:
 
             // Print the event calendar to the specified output in assignment
-            Console.WriteLine("EventID,EventName,EventDate,StartTime");
-
-    for (int i = 0; i < eventCalendar.EventCount(); i++)
-        {
-        var evt = eventCalendar.GetEvent(i);
-    
-            var actualDate = startDate.AddDays(evt.GetEventDay() - 1);
-            var dateString = actualDate.ToString("yyyy-MM-dd");
-    
-            var startDateTime = evt.GetStartDateTime(eventCalendar.StartDayDate);
-            var startTimeString = startDateTime.ToStartTimeFormat();
-    
-            Console.WriteLine($"{evt.GetEventId()},{evt.GetEventName()},{dateString},{startTimeString}");
+ Console.WriteLine("EventID,EventName,EventDate,StartTime");
+            
+            for (int i = 0; i < eventCalendar.EventCount(); i++)
+            {
+                var evt = eventCalendar.GetEvent(i);
+                var actualDate = startDate.AddDays(evt.GetEventDay() - 1);
+                var dateString = actualDate.ToString("yyyy-MM-dd");
+                var startDateTime = evt.GetStartDateTime(eventCalendar.StartDayDate);
+                var startTimeString = startDateTime.ToStartTimeFormat();
+                
+                Console.WriteLine($"{evt.GetEventId()},{evt.GetEventName()},{dateString},{startTimeString}");
             }
         }
     }
-
 }
-
-
 
