@@ -1,6 +1,8 @@
 ﻿using Calendar;
 using Calendar.Extensions;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace EventScheduler
 {
@@ -127,6 +129,61 @@ namespace EventScheduler
                     evt.SetStartTime(latestStart.ToStartTimeFormat());
                 }
             }
+
+            // Rule 6: Must be a 1 hour lunch break during the day between 12 noon to 2 pm
+            var eventsByDay = new Dictionary<int, List<Event>>();
+            for (int i = 0; i < eventCalendar.EventCount(); i++) {
+                var evt = eventCalendar.GetEvent(i);
+                int day = evt.GetEventDay();
+                    // groups each event by day
+                if (!eventsByDay.ContainsKey(day)) {
+                    eventsByDay[day] = new List<Event>();
+                }
+                eventsByDay[day].Add(evt);
+
+            }
+
+            foreach (var day in eventsByDay.Keys) {
+                var eventsOnDay = eventsByDay[day];
+
+                eventsOnDay.Sort((a,b) =>
+                {
+                    var timeA = a.GetStartDateTime(eventCalendar.StartDayDate);
+                    var timeB = b.GetStartDateTime(eventCalendar.StartDayDate);
+                    return timeA.CompareTo(timeB);
+                });
+
+
+                 for (int i = 0; i < eventsOnDay.Count - 1; i++)
+                {
+                    var currentEvent = eventsOnDay[i];
+                    var nextEvent = eventsOnDay[i + 1];
+                    
+                    var currentEnd = currentEvent.GetEndDateTime(eventCalendar.StartDayDate);
+                    var nextStart = nextEvent.GetStartDateTime(eventCalendar.StartDayDate);
+                    
+                    var gapStart = currentEnd;
+                    var gapEnd = nextStart;
+                    var gapDuration = (gapEnd - gapStart).TotalHours;
+                    
+                    var lunchEarliestStart = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.LunchTimeStartLowerBound}");
+                    var lunchLatestEnd = DateTime.Parse($"{eventCalendar.StartDayDate} {eventCalendar.LunchTimeStartUpperBound}").AddHours(eventCalendar.LunchDuration);
+                    
+                    lunchEarliestStart = lunchEarliestStart.AddDays(day - 1);
+                    lunchLatestEnd = lunchLatestEnd.AddDays(day - 1);
+                    
+                    //check if gap witth lunch si long enough
+                    if (gapDuration >= eventCalendar.LunchDuration &&
+                        gapEnd > lunchEarliestStart &&
+                        gapStart < lunchLatestEnd)
+                    {
+                        break;
+                    }
+                }
+
+
+            }
+
             // :END:
 
             // Print the event calendar to the specified output in assignment
