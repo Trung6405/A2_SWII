@@ -62,19 +62,12 @@ namespace EventScheduler
 
             var finalDate = DateTime.Parse(eventCalendar.StartDayDate).AddDays(maxOriginalDay - 1);
             if (finalDate.IsWeekend())
-            {
-                while (finalDate.IsWeekend())
                 {
+                    while (finalDate.IsWeekend())
                     finalDate = finalDate.AddDays(1);
-                }
-                var shiftedStart = finalDate.AddDays(-maxOriginalDay + 1);
-                eventCalendar.SetStartDayDate(shiftedStart.ToString("yyyy-MM-dd"));
-                for (int i = 0; i < eventCalendar.EventCount(); i++)
-                {
-                    var evt = eventCalendar.GetEvent(i);
-                    eventOriginalDates[i] = shiftedStart.AddDays(evt.GetEventDay() - 1);
-                }
-            }
+                    var weekdayOffset = finalDate - (DateTime.Parse(eventCalendar.StartDayDate) + TimeSpan.FromDays(maxOriginalDay - 1));
+                    eventCalendar.SetStartDayDate((DateTime.Parse(eventCalendar.StartDayDate) + weekdayOffset).ToString("yyyy-MM-dd"));
+                    }
 
             var weekdayEventsByDate = new Dictionary<DateTime, List<int>>();
             foreach (var eventIndex in weekdayEvents)
