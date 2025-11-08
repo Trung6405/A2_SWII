@@ -86,7 +86,15 @@ namespace EventScheduler
             var adjustedDates = new Dictionary<int, DateTime>();
             for (int i = 0; i < eventCalendar.EventCount(); i++)
             {
-                adjustedDates[i] = eventOriginalDates[i].AddDays(totalShift);
+                var adjustedDate = eventOriginalDates[i].AddDays(totalShift);
+                if (!eventOriginalDates[i].IsWeekend() && adjustedDate.IsWeekend())
+                {
+                    while (adjustedDate.IsWeekend())
+                    {
+                        adjustedDate = adjustedDate.AddDays(1);
+                    }
+                }
+                adjustedDates[i] = adjustedDate;
             }
 
             var weekdayEventsByDate = new Dictionary<DateTime, List<int>>();
@@ -130,34 +138,51 @@ namespace EventScheduler
 
             foreach (var dateEntry in weekdayEventsByDate.OrderBy(kv => kv.Key))
             {
-                var fixedDate = dateEntry.Key;
+                var targetDate = dateEntry.Key;
                 var eventIndices = dateEntry.Value;
-
-                if (!dateOccupancy.ContainsKey(fixedDate))
-                {
-                    dateOccupancy[fixedDate] = new List<(TimeSpan, TimeSpan)>();
-                }
 
                 foreach (var eventIndex in eventIndices)
                 {
                     var evt = eventCalendar.GetEvent(eventIndex);
                     var duration = evt.GetDuration(eventCalendar.StartDayDate);
 
-                    var slot = FindAvailableSlot(dateOccupancy[fixedDate], duration);
+                    bool scheduled = false;
+                    var tryDate = targetDate;
                     
-                    if (slot.HasValue)
+                    while (!scheduled)
                     {
-                        dateOccupancy[fixedDate].Add((slot.Value, slot.Value.Add(TimeSpan.FromHours(duration))));
-                        scheduledEvents[eventIndex] = (fixedDate, slot.Value.ToString(@"hh\:mm"));
-                    }
-                    else
-                    {
-                        Console.Error.WriteLine($"ERROR: Cannot fit event {evt.GetEventId()} on its required date {fixedDate:yyyy-MM-dd}");
+                        if (!dateOccupancy.ContainsKey(tryDate))
+                        {
+                            dateOccupancy[tryDate] = new List<(TimeSpan, TimeSpan)>();
+                        }
+
+                        var slot = FindAvailableSlot(dateOccupancy[tryDate], duration);
+                        
+                        if (slot.HasValue)
+                        {
+                            dateOccupancy[tryDate].Add((slot.Value, slot.Value.Add(TimeSpan.FromHours(duration))));
+                            scheduledEvents[eventIndex] = (tryDate, slot.Value.ToString(@"hh\:mm"));
+                            scheduled = true;
+                        }
+                        else
+                        {
+                            tryDate = tryDate.AddDays(7);
+                        }
                     }
                 }
             }
 
-            var currentSchedulingDate = startDate;
+            DateTime earliestWeekendDate = startDate;
+            if (weekendEvents.Count > 0)
+            {
+                earliestWeekendDate = weekendEvents.Select(i => adjustedDates[i]).Min();
+                while (earliestWeekendDate.IsWeekend())
+                {
+                    earliestWeekendDate = earliestWeekendDate.AddDays(1);
+                }
+            }
+            
+            var currentSchedulingDate = earliestWeekendDate;
             
             foreach (var eventIndex in weekendEvents)
             {
