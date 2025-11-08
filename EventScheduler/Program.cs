@@ -46,7 +46,6 @@ namespace EventScheduler
                 }
             }
 
-            // Rules 3 & 4
             var dayToDateMapping = new Dictionary<int, DateTime>();
             var currentDate = startDate;
             
@@ -59,6 +58,13 @@ namespace EventScheduler
                 
                 dayToDateMapping[day] = currentDate;
                 currentDate = currentDate.AddDays(1);
+            }
+
+            var originalDayIsWeekend = new Dictionary<int, bool>();
+            for (int day = 1; day <= maxEventDay; day++)
+            {
+                var originalDate = startDate.AddDays(day - 1);
+                originalDayIsWeekend[day] = originalDate.IsWeekend();
             }
 
             var allEventIndices = new List<int>();
@@ -89,12 +95,14 @@ namespace EventScheduler
                 var originalDay = evt.GetEventDay();
                 var targetDate = dayToDateMapping[originalDay];
                 
+                bool wasOriginallySatOrSun = originalDayIsWeekend[originalDay];
+                
                 var originalStartTime = evt.GetStartDateTime(eventCalendar.StartDayDate);
                 var proposedStart = new DateTime(targetDate.Year, targetDate.Month, targetDate.Day,
                     originalStartTime.Hour, originalStartTime.Minute, 0);
 
                 var (finalDate, finalStart) = FindValidSlot(proposedStart, targetDate, duration, 
-                    scheduledSlots, dayToDateMapping);
+                    scheduledSlots, dayToDateMapping, wasOriginallySatOrSun);
 
                 int finalDay = GetOrCreateDayForDate(finalDate, dayToDateMapping);
                 evt.SetEventDay(finalDay);
@@ -122,12 +130,41 @@ namespace EventScheduler
             DateTime targetDate,
             double durationHours,
             List<(DateTime date, DateTime start, DateTime end)> scheduledSlots,
-            Dictionary<int, DateTime> dayToDateMapping)
+            Dictionary<int, DateTime> dayToDateMapping,
+            bool canChangeDay) 
         {
             var currentDate = targetDate;
             
-            var dayStart = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, 9, 0, 0);
-            var candidateStart = proposedStart < dayStart ? dayStart : proposedStart;
+            if (!canChangeDay)
+            {
+                var dayStart = new DateTime(targetDate.Year, targetDate.Month, targetDate.Day, 9, 0, 0);
+                var dayEnd = new DateTime(targetDate.Year, targetDate.Month, targetDate.Day, 17, 0, 0);
+                var candidateStart = proposedStart < dayStart ? dayStart : proposedStart;
+
+                var candidateTimes = GenerateCandidateTimes(targetDate, candidateStart, dayEnd);
+
+                foreach (var candidateTime in candidateTimes)
+                {
+                    if (IsValidSlot(candidateTime, durationHours, targetDate, scheduledSlots))
+                    {
+                        return (targetDate, candidateTime);
+                    }
+                }
+
+                candidateTimes = GenerateCandidateTimes(targetDate, dayStart, dayEnd);
+                foreach (var candidateTime in candidateTimes)
+                {
+                    if (IsValidSlot(candidateTime, durationHours, targetDate, scheduledSlots))
+                    {
+                        return (targetDate, candidateTime);
+                    }
+                }
+
+                return (targetDate, proposedStart);
+            }
+
+            var dayStart2 = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, 9, 0, 0);
+            var candidateStart2 = proposedStart < dayStart2 ? dayStart2 : proposedStart;
 
             int maxDaysToSearch = 30;
             int daysSearched = 0;
@@ -136,7 +173,7 @@ namespace EventScheduler
             {
                 var dayEnd = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, 17, 0, 0);
                 
-                var candidateTimes = GenerateCandidateTimes(currentDate, candidateStart, dayEnd);
+                var candidateTimes = GenerateCandidateTimes(currentDate, candidateStart2, dayEnd);
 
                 foreach (var candidateTime in candidateTimes)
                 {
@@ -152,11 +189,11 @@ namespace EventScheduler
                     currentDate = currentDate.AddDays(1);
                 }
                 
-                candidateStart = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, 9, 0, 0);
+                candidateStart2 = new DateTime(currentDate.Year, currentDate.Month, currentDate.Day, 9, 0, 0);
                 daysSearched++;
             }
 
-            return (currentDate, candidateStart);
+            return (currentDate, candidateStart2);
         }
 
         static List<DateTime> GenerateCandidateTimes(DateTime date, DateTime startFrom, DateTime dayEnd)
@@ -179,7 +216,7 @@ namespace EventScheduler
             var candidateEnd = candidateStart.AddHours(durationHours);
             var dayEnd = new DateTime(date.Year, date.Month, date.Day, 17, 0, 0);
 
-            // Rule 5
+            // Rule 5: Must be between 9am and 5pm
             if (candidateEnd > dayEnd)
             {
                 return false;
@@ -194,7 +231,7 @@ namespace EventScheduler
                 }
             }
 
-            // Rule 6: Must be a 1 hour lunch break during the day between 12 noon to 2 pm
+            // Rule 6: Must allow for a 1 hour lunch break during the day between 12 noon to 2 pm
             if (!WouldAllowLunchBreak(date, candidateStart, candidateEnd, scheduledSlots))
             {
                 return false;
@@ -236,11 +273,11 @@ namespace EventScheduler
 
                 if (!blocked)
                 {
-                    return true;
+                    return true; 
                 }
             }
 
-            return false;
+            return false; 
         }
 
         static int GetOrCreateDayForDate(DateTime date, Dictionary<int, DateTime> dayToDateMapping)
