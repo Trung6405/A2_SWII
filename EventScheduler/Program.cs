@@ -26,6 +26,8 @@ namespace EventScheduler
             eventCalendar.Parse(pathToEventsFile);
 
             var originalStartDate = DateTime.Parse(initialStartDayDate);
+
+            // Rule 2: if opening day falls on a weekend, move to following Monday
             if (originalStartDate.IsWeekend())
             {
                 while (originalStartDate.IsWeekend())
@@ -39,6 +41,7 @@ namespace EventScheduler
             var weekdayEvents = new List<int>();
             var weekendEvents = new List<int>();
 
+            // classify events into weekday orweekend
             for (int i = 0; i < eventCalendar.EventCount(); i++)
             {
                 var evt = eventCalendar.GetEvent(i);
@@ -47,9 +50,9 @@ namespace EventScheduler
                 eventOriginalDates[i] = originalDate;
 
                 if (originalDate.IsWeekend())
-                    weekendEvents.Add(i);
+                    weekendEvents.Add(i); 
                 else
-                    weekdayEvents.Add(i);
+                    weekdayEvents.Add(i); // weekday events stay on their original datte
             }
 
             int maxOriginalDay = 0;
@@ -60,15 +63,18 @@ namespace EventScheduler
                     maxOriginalDay = evt.GetEventDay();
             }
 
+            // Rule 3: If the final day falls on a weekend, move starting date forward
             var finalDate = DateTime.Parse(eventCalendar.StartDayDate).AddDays(maxOriginalDay - 1);
             if (finalDate.IsWeekend())
-                {
-                    while (finalDate.IsWeekend())
+            {
+                while (finalDate.IsWeekend())
                     finalDate = finalDate.AddDays(1);
-                    var weekdayOffset = finalDate - (DateTime.Parse(eventCalendar.StartDayDate) + TimeSpan.FromDays(maxOriginalDay - 1));
-                    eventCalendar.SetStartDayDate((DateTime.Parse(eventCalendar.StartDayDate) + weekdayOffset).ToString("yyyy-MM-dd"));
-                    }
 
+                var weekdayOffset = finalDate - (DateTime.Parse(eventCalendar.StartDayDate) + TimeSpan.FromDays(maxOriginalDay - 1));
+                eventCalendar.SetStartDayDate((DateTime.Parse(eventCalendar.StartDayDate) + weekdayOffset).ToString("yyyy-MM-dd"));
+            }
+
+            // build a dictionary of week day events by date
             var weekdayEventsByDate = new Dictionary<DateTime, List<int>>();
             foreach (var eventIndex in weekdayEvents)
             {
@@ -93,6 +99,7 @@ namespace EventScheduler
             var scheduledEvents = new Dictionary<int, (DateTime date, string time)>();
             var dateOccupancy = new Dictionary<DateTime, List<(TimeSpan start, TimeSpan end)>>();
 
+            //schedule weekday events first
             foreach (var dateEntry in weekdayEventsByDate.OrderBy(kv => kv.Key))
             {
                 var fixedDate = dateEntry.Key;
@@ -106,6 +113,7 @@ namespace EventScheduler
                     var evt = eventCalendar.GetEvent(eventIndex);
                     var duration = evt.GetDuration(eventCalendar.StartDayDate);
 
+                    // Rule 1, 5, 6 are all integrated together to ensure system always 
                     var slot = FindAvailableSlot(dateOccupancy[fixedDate], duration);
                     if (slot.HasValue)
                     {
@@ -119,6 +127,7 @@ namespace EventScheduler
                 }
             }
 
+            // schedule weekend events to next available weekday
             foreach (var eventIndex in weekendEvents)
             {
                 var evt = eventCalendar.GetEvent(eventIndex);
@@ -132,7 +141,7 @@ namespace EventScheduler
                     if (currentDate.IsWeekend())
                     {
                         currentDate = currentDate.AddDays(1);
-                        continue;
+                        continue; // keep moving until it is a week day
                     }
 
                     if (!dateOccupancy.ContainsKey(currentDate))
@@ -147,7 +156,7 @@ namespace EventScheduler
                     }
                     else
                     {
-                        currentDate = currentDate.AddDays(1);
+                        currentDate = currentDate.AddDays(1); 
                     }
                 }
             }
@@ -172,6 +181,7 @@ namespace EventScheduler
 
             var blockedTimes = new List<(TimeSpan start, TimeSpan end)>(occupiedSlots);
 
+            // Lunch  scheduled 
             bool lunchScheduled = blockedTimes.Any(slot => slot.start <= lunchStart && slot.end >= lunchEnd);
 
             if (!lunchScheduled)
