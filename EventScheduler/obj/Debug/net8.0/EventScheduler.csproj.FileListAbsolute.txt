@@ -1,9 +1,3 @@
-/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.csproj.AssemblyReference.cache
-/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.GeneratedMSBuildEditorConfig.editorconfig
-/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.AssemblyInfoInputs.cache
-/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.AssemblyInfo.cs
-/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.csproj.CoreCompileInputs.cache
-/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.sourcelink.json
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Debug/net8.0/EventScheduler
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Debug/net8.0/EventScheduler.deps.json
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Debug/net8.0/EventScheduler.runtimeconfig.json
@@ -11,6 +5,12 @@
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Debug/net8.0/EventScheduler.pdb
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Debug/net8.0/Calendar.dll
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/bin/Debug/net8.0/Calendar.xml
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.csproj.AssemblyReference.cache
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.GeneratedMSBuildEditorConfig.editorconfig
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.AssemblyInfoInputs.cache
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.AssemblyInfo.cs
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.csproj.CoreCompileInputs.cache
+/Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.sourcelink.json
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventSch.2A5D64B5.Up2Date
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/EventScheduler.dll
 /Users/wisamaburas/Github/software in industry/A2_SWII/EventScheduler/obj/Debug/net8.0/refint/EventScheduler.dll
