@@ -26,37 +26,30 @@ namespace EventScheduler
             eventCalendar.Parse(pathToEventsFile);
 
             var originalStartDate = DateTime.Parse(initialStartDayDate);
+            if (originalStartDate.IsWeekend())
+            {
+                while (originalStartDate.IsWeekend())
+                {
+                    originalStartDate = originalStartDate.AddDays(1);
+                }
+                eventCalendar.SetStartDayDate(originalStartDate.ToString("yyyy-MM-dd"));
+            }
+
             var eventOriginalDates = new Dictionary<int, DateTime>();
             var weekdayEvents = new List<int>();
             var weekendEvents = new List<int>();
-            
+
             for (int i = 0; i < eventCalendar.EventCount(); i++)
             {
                 var evt = eventCalendar.GetEvent(i);
-                int eventDay = evt.GetEventDay();
-                var originalDate = originalStartDate.AddDays(eventDay - 1);
+                var eventDay = evt.GetEventDay();
+                var originalDate = DateTime.Parse(eventCalendar.StartDayDate).AddDays(eventDay - 1);
                 eventOriginalDates[i] = originalDate;
-                
-                if (originalDate.IsWeekend())
-                {
-                    weekendEvents.Add(i);
-                }
-                else
-                {
-                    weekdayEvents.Add(i);
-                }
-            }
 
-            var startDate = DateTime.Parse(eventCalendar.StartDayDate);
-            int startDateShift = 0;
-            if (startDate.IsWeekend())
-            {
-                while (startDate.AddDays(startDateShift).IsWeekend())
-                {
-                    startDateShift++;
-                }
-                startDate = startDate.AddDays(startDateShift);
-                eventCalendar.SetStartDayDate(startDate.ToString("yyyy-MM-dd"));
+                if (originalDate.IsWeekend())
+                    weekendEvents.Add(i);
+                else
+                    weekdayEvents.Add(i);
             }
 
             int maxOriginalDay = 0;
@@ -64,40 +57,32 @@ namespace EventScheduler
             {
                 var evt = eventCalendar.GetEvent(i);
                 if (evt.GetEventDay() > maxOriginalDay)
-                {
                     maxOriginalDay = evt.GetEventDay();
-                }
             }
 
-            var finalDate = startDate.AddDays(maxOriginalDay - 1);
-            int endDateShift = 0;
+            var finalDate = DateTime.Parse(eventCalendar.StartDayDate).AddDays(maxOriginalDay - 1);
             if (finalDate.IsWeekend())
             {
-                while (finalDate.AddDays(endDateShift).IsWeekend())
+                while (finalDate.IsWeekend())
                 {
-                    endDateShift++;
+                    finalDate = finalDate.AddDays(1);
                 }
-                startDate = startDate.AddDays(endDateShift);
-                eventCalendar.SetStartDayDate(startDate.ToString("yyyy-MM-dd"));
-            }
-
-            int totalShift = startDateShift + endDateShift;
-
-            var adjustedDates = new Dictionary<int, DateTime>();
-            for (int i = 0; i < eventCalendar.EventCount(); i++)
-            {
-                adjustedDates[i] = eventOriginalDates[i].AddDays(totalShift);
+                var shiftedStart = finalDate.AddDays(-maxOriginalDay + 1);
+                eventCalendar.SetStartDayDate(shiftedStart.ToString("yyyy-MM-dd"));
+                for (int i = 0; i < eventCalendar.EventCount(); i++)
+                {
+                    var evt = eventCalendar.GetEvent(i);
+                    eventOriginalDates[i] = shiftedStart.AddDays(evt.GetEventDay() - 1);
+                }
             }
 
             var weekdayEventsByDate = new Dictionary<DateTime, List<int>>();
             foreach (var eventIndex in weekdayEvents)
             {
-                var adjustedDate = adjustedDates[eventIndex];
-                if (!weekdayEventsByDate.ContainsKey(adjustedDate))
-                {
-                    weekdayEventsByDate[adjustedDate] = new List<int>();
-                }
-                weekdayEventsByDate[adjustedDate].Add(eventIndex);
+                var d = eventOriginalDates[eventIndex];
+                if (!weekdayEventsByDate.ContainsKey(d))
+                    weekdayEventsByDate[d] = new List<int>();
+                weekdayEventsByDate[d].Add(eventIndex);
             }
 
             foreach (var date in weekdayEventsByDate.Keys.ToList())
@@ -112,19 +97,6 @@ namespace EventScheduler
                 });
             }
 
-            weekendEvents.Sort((a, b) =>
-            {
-                var evtA = eventCalendar.GetEvent(a);
-                var evtB = eventCalendar.GetEvent(b);
-                
-                int dayCompare = evtA.GetEventDay().CompareTo(evtB.GetEventDay());
-                if (dayCompare != 0) return dayCompare;
-                
-                var timeA = evtA.GetStartDateTime(eventCalendar.StartDayDate);
-                var timeB = evtB.GetStartDateTime(eventCalendar.StartDayDate);
-                return timeA.CompareTo(timeB);
-            });
-
             var scheduledEvents = new Dictionary<int, (DateTime date, string time)>();
             var dateOccupancy = new Dictionary<DateTime, List<(TimeSpan start, TimeSpan end)>>();
 
@@ -134,9 +106,7 @@ namespace EventScheduler
                 var eventIndices = dateEntry.Value;
 
                 if (!dateOccupancy.ContainsKey(fixedDate))
-                {
                     dateOccupancy[fixedDate] = new List<(TimeSpan, TimeSpan)>();
-                }
 
                 foreach (var eventIndex in eventIndices)
                 {
@@ -144,7 +114,6 @@ namespace EventScheduler
                     var duration = evt.GetDuration(eventCalendar.StartDayDate);
 
                     var slot = FindAvailableSlot(dateOccupancy[fixedDate], duration);
-                    
                     if (slot.HasValue)
                     {
                         dateOccupancy[fixedDate].Add((slot.Value, slot.Value.Add(TimeSpan.FromHours(duration))));
@@ -152,55 +121,50 @@ namespace EventScheduler
                     }
                     else
                     {
-                        Console.Error.WriteLine($"ERROR: Cannot fit event {evt.GetEventId()} on its required date {fixedDate:yyyy-MM-dd}");
+                        Console.Error.WriteLine($"ERROR: Cannot fit event {evt.GetEventId()} on {fixedDate:yyyy-MM-dd}");
                     }
                 }
             }
 
-            var currentSchedulingDate = startDate;
-            
             foreach (var eventIndex in weekendEvents)
             {
                 var evt = eventCalendar.GetEvent(eventIndex);
                 var duration = evt.GetDuration(eventCalendar.StartDayDate);
 
+                var currentDate = eventOriginalDates[eventIndex];
+
                 bool scheduled = false;
-                
                 while (!scheduled)
                 {
-                    while (currentSchedulingDate.IsWeekend())
+                    if (currentDate.IsWeekend())
                     {
-                        currentSchedulingDate = currentSchedulingDate.AddDays(1);
+                        currentDate = currentDate.AddDays(1);
+                        continue;
                     }
 
-                    if (!dateOccupancy.ContainsKey(currentSchedulingDate))
-                    {
-                        dateOccupancy[currentSchedulingDate] = new List<(TimeSpan, TimeSpan)>();
-                    }
+                    if (!dateOccupancy.ContainsKey(currentDate))
+                        dateOccupancy[currentDate] = new List<(TimeSpan start, TimeSpan end)>();
 
-                    var slot = FindAvailableSlot(dateOccupancy[currentSchedulingDate], duration);
-                    
+                    var slot = FindAvailableSlot(dateOccupancy[currentDate], duration);
                     if (slot.HasValue)
                     {
-                        dateOccupancy[currentSchedulingDate].Add((slot.Value, slot.Value.Add(TimeSpan.FromHours(duration))));
-                        scheduledEvents[eventIndex] = (currentSchedulingDate, slot.Value.ToString(@"hh\:mm"));
+                        dateOccupancy[currentDate].Add((slot.Value, slot.Value.Add(TimeSpan.FromHours(duration))));
+                        scheduledEvents[eventIndex] = (currentDate, slot.Value.ToString(@"hh\:mm"));
                         scheduled = true;
                     }
                     else
                     {
-                        currentSchedulingDate = currentSchedulingDate.AddDays(1);
+                        currentDate = currentDate.AddDays(1);
                     }
                 }
             }
 
             Console.WriteLine("EventID,EventName,EventDate,StartTime");
-            
             for (int i = 0; i < eventCalendar.EventCount(); i++)
             {
                 var evt = eventCalendar.GetEvent(i);
                 var (date, time) = scheduledEvents[i];
                 var dateString = date.ToString("yyyy-MM-dd");
-                
                 Console.WriteLine($"{evt.GetEventId()},{evt.GetEventName()},{dateString},{time}");
             }
         }
@@ -214,18 +178,15 @@ namespace EventScheduler
             var duration = TimeSpan.FromHours(durationHours);
 
             var blockedTimes = new List<(TimeSpan start, TimeSpan end)>(occupiedSlots);
-            
-            bool lunchScheduled = blockedTimes.Any(slot => 
-                slot.start <= lunchStart && slot.end >= lunchEnd);
-            
+
+            bool lunchScheduled = blockedTimes.Any(slot => slot.start <= lunchStart && slot.end >= lunchEnd);
+
             if (!lunchScheduled)
             {
                 for (var lunchTime = lunchStart; lunchTime <= new TimeSpan(13, 0, 0); lunchTime = lunchTime.Add(TimeSpan.FromMinutes(1)))
                 {
                     var lunchSlot = (lunchTime, lunchTime.Add(TimeSpan.FromHours(1)));
-                    bool conflicts = blockedTimes.Any(slot => 
-                        !(lunchSlot.Item2 <= slot.start || lunchSlot.Item1 >= slot.end));
-                    
+                    bool conflicts = blockedTimes.Any(slot => !(lunchSlot.Item2 <= slot.start || lunchSlot.Item1 >= slot.end));
                     if (!conflicts && lunchTime.Add(TimeSpan.FromHours(1)) <= new TimeSpan(14, 0, 0))
                     {
                         blockedTimes.Add(lunchSlot);
